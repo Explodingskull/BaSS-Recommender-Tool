@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Storage Recommender</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card border-success mb-4 shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">🔋 Recommended Bill of Materials (BOM)</h4>
+            </div>
+            <div class="card-body">
+                {% if recommended_bom.battery and recommended_bom.supercap %}
+                    <h5 class="text-primary">Battery:</h5>
+                    <ul>
+                        <li><strong>Company:</strong> {{ recommended_bom.battery.company }}</li>
+                        <li><strong>Part Number:</strong> {{ recommended_bom.battery.part }}</li>
+                        <li><strong>Units Required:</strong> {{ recommended_bom.battery.units }}</li>
+                        <li><strong>Estimated Price:</strong> ₹{{ recommended_bom.battery.price }}</li>
+                    </ul>
+    
+                    <h5 class="text-primary">Supercapacitor:</h5>
+                    <ul>
+                        <li><strong>Datasheet:</strong> {{ recommended_bom.supercap.datasheet | safe }}</li>
+                        <li><strong>Manufacturer:</strong> {{ recommended_bom.supercap.mfr }}</li>
+                        <li><strong>Description:</strong> {{ recommended_bom.supercap.desc }}</li>
+                        <li><strong>Units Required:</strong> {{ recommended_bom.supercap.units }}</li>
+                        <li><strong>Estimated Price:</strong> ₹{{ recommended_bom.supercap.price }}</li>
+                    </ul>
+    
+                    <h5 class="text-danger">💰 Total Estimated Cost: ₹{{ recommended_bom.total_price }}</h5>
+                {% else %}
+                    <p class="text-warning">No valid battery-supercapacitor combination found within constraints.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="container-fluid mt-5 pl-3">
+    <h2>Energy Storage Results</h2>
+
+    <!-- Hybrid Parameters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Hybrid Energy Storage Parameters</h5>
+        </div>
+        <div class="card-body">
+            <ul>
+                <li><strong>Base Energy (Wh):</strong> {{ hybrid_params['base_energy'] }}</li>
+                <li><strong>Base Power (W):</strong> {{ hybrid_params['base_power'] }}</li>
+                <li><strong>Peak Energy (Wh):</strong> {{ hybrid_params['peak_energy'] }}</li>
+                <li><strong>Peak Power (W):</strong> {{ hybrid_params['peak_power'] }}</li>
+                <li><strong>Total Energy (Wh):</strong> {{ hybrid_params['total_energy'] }}</li>
+                <li><strong>Total Power (W):</strong> {{ hybrid_params['total_power'] }}</li>
+            </ul>
+            <h5>Synthetic Power Curve:</h5>
+            <canvas id="powerCurveChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Batteries Table -->
+    <h4>Recommended Batteries</h4>
+    {% if batteries %}
+    <table class="table table-bordered table-hover table-sm">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                {% for key in batteries[0].keys() %}
+                    <th>{{ key }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in batteries %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                {% for val in row.values() %}
+                    <td>{{ val|safe }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No matching batteries found.</p>
+    {% endif %}
+
+    <!-- Supercapacitors Table -->
+    <h4>Recommended Supercapacitors</h4>
+    {% if supercaps %}
+    <table class="table table-bordered table-hover table-sm">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                {% for key in supercaps[0].keys() %}
+                    <th>{{ key }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in supercaps %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                {% for val in row.values() %}
+                    <td>{{ val|safe }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No matching supercapacitors found.</p>
+    {% endif %}
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<!-- Chart.js Script to Plot the Synthetic Power Curve -->
+<script>
+    var ctx = document.getElementById('powerCurveChart').getContext('2d');
+    var powerCurveChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array.from({length: {{ hybrid_params['synthetic_curve'] | length }}}, (v, k) => k),
+            datasets: [{
+                label: 'Synthetic Power Demand Curve',
+                data: {{ hybrid_params['synthetic_curve'] }},
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time (s)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Power (W)'
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
